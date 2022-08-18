@@ -1,0 +1,24 @@
+include:
+ - project: devops/cicd-template/ci-template
+   file: "gitlab-ci-template.yml"
+
+variables:
+  # --------  Values must be only "TRUE" or "FALSE"  -------------
+  # --------------------------------------------------------------
+  CI_PROJECT_TYPE_FRONTEND: "__CI_PROJECT_TYPE_FRONTEND__"
+  CI_PROJECT_TYPE_BACKEND: "__CI_PROJECT_TYPE_BACKEND__"
+  # --------------------------------------------------------------
+  CI_PROJECT_MODE_MONO_REPO: "__CI_PROJECT_MODE_MONO_REPO__"
+  CI_PROJECT_MODE_MULTI_MODULE: "__CI_PROJECT_MODE_MULTI_MODULE__"
+  # --------------------------------------------------------------
+  CI_APPLICATION_TYPE_MAVEN: "__CI_APPLICATION_TYPE_MAVEN__"
+  CI_APPLICATION_TYPE_GRADLE: "__CI_APPLICATION_TYPE_GRADLE__"
+  # --------------------------------------------------------------
+  CI_RELEASE_TYPE_JIB: "__CI_RELEASE_TYPE_JIB__"
+  CI_RELEASE_TYPE_KANIKO: "__CI_RELEASE_TYPE_KANIKO__"
+  # --------------------------------------------------------------
+  CI_CODE_STYLE_SONARQUBE: "__CI_CODE_STYLE_SONARQUBE__"
+  # --------------------------------------------------------------
+  CI_CODE_CHECK_SNYK: "__CI_CODE_CHECK_SNYK__"
+  # --------------------------------------------------------------
+  CI_PROJECT_TEST_STAGE: "__CI_PROJECT_TEST_STAGE__"

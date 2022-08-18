@@ -1,0 +1,336 @@
+stages:
+  - code-style
+  - check
+  - test
+  - release
+  - deploy
+  - generate-child-pipeline
+  - trigger-child-pipeline
+
+# Dynamic Pipeline Generation with Python Script
+
+generate-child-pipeline:
+  stage: generate-child-pipeline
+  image: bitnami/python
+  script:
+    - git -c http.sslVerify=false clone https://$CI_GITLAB_USERNAME:$CI_GITLAB_PASSWORD@gitlab.local.az/devops/cicd-tools/dynamic-pipeline-generator.git
+    - python3 dynamic-pipeline-generator/main.py
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - $CI_PROJECT_MODE_MULTI_MODULE == "TRUE"
+  artifacts:
+    paths:
+      - child-pipeline-gitlab-ci.yml
+
+trigger-child-pipeline:
+  stage: trigger-child-pipeline
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - $CI_PROJECT_MODE_MULTI_MODULE == "TRUE"
+  trigger:
+    include:
+      - artifact: child-pipeline-gitlab-ci.yml
+        job: generate-child-pipeline
+    strategy: depend
+
+# Sonarqube code-style stage
+
+.sonar_gradle:
+  stage: code-style
+  image: openjdk:11-jdk-slim
+  variables:
+    GRADLE_OPTS: "-Dgradle.user.home=.gradle -Dorg.gradle.daemon=false"
+  before_script:
+    - chmod +x gradlew
+  script:
+    - ./gradlew sonarqube -Dsonar.host.url=$URL -Dsonar.login=$USERNAME -Dsonar.password=$PASSWORD -Dsonar.qualitygate.wait=true
+
+.sonar_maven:
+  stage: code-style
+  image: maven:3.8.5-openjdk-11
+  script:
+    - mvn clean verify sonar:sonar -Dsonar.host.url=$URL -Dsonar.login=$USERNAME -Dsonar.password=$PASSWORD -Dsonar.qualitygate.wait=true
+    
+code_style_gradle_dev:
+  extends: .sonar_gradle
+  variables:
+    URL: $CI_SONAR_DEV_URL
+    USERNAME: $CI_SONAR_DEV_USERNAME
+    PASSWORD: $CI_SONAR_DEV_PASSWORD
+  only:
+    refs:
+      - "develop"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_GRADLE == "TRUE" && $CI_CODE_STYLE_SONARQUBE == "TRUE"'
+    
+code_style_gradle_prod:
+  extends: .sonar_gradle
+  variables:
+    URL: $CI_SONAR_PROD_URL
+    USERNAME: $CI_SONAR_PROD_USERNAME
+    PASSWORD: $CI_SONAR_PROD_PASSWORD
+  only:
+    refs:
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_GRADLE == "TRUE" && $CI_CODE_STYLE_SONARQUBE == "TRUE"'
+
+
+code_style_maven_dev:
+  extends: .sonar_maven
+  variables:
+    URL: $CI_SONAR_DEV_URL
+    USERNAME: $CI_SONAR_DEV_USERNAME
+    PASSWORD: $CI_SONAR_DEV_PASSWORD
+  only:
+    refs:
+      - "develop"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_CODE_STYLE_SONARQUBE == "TRUE"'
+    
+code_style_maven_prod:
+  extends: .sonar_maven
+  variables:
+    URL: $CI_SONAR_PROD_URL
+    USERNAME: $CI_SONAR_PROD_USERNAME
+    PASSWORD: $CI_SONAR_PROD_PASSWORD
+  only:
+    refs:
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_CODE_STYLE_SONARQUBE == "TRUE"'
+
+# Synk check for mawen and gradle
+
+snyk-sca-mawen:  
+  stage: check
+  image: gitlab.local.az:4567/devops/images/snyk-mawen:latest
+  script:
+    - mvn install
+    - snyk auth $CI_SNYK_TOKEN
+    - snyk test --fail-on=patchable --json | snyk-to-html -o snyk_code.html
+  artifacts:
+    when: always
+    paths:
+      - snyk_code.html
+  only:
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_CODE_CHECK_SNYK == "TRUE"'
+
+snyk-code-mawen:  
+  stage: check
+  image: gitlab.local.az:4567/devops/images/snyk-mawen:latest
+  script:
+    - mvn install
+    - snyk auth $CI_SNYK_TOKEN
+    - snyk code test --json | snyk-to-html -o snyk_code.html
+  artifacts:
+    when: always
+    paths:
+      - snyk_code.html
+  only:
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_CODE_CHECK_SNYK == "TRUE"'
+
+snyk-sca-gradle:
+  stage: check
+  image: gitlab.local.az:4567/devops/images/snyk-gradle:latest
+  script:
+    - gradle build
+    - snyk auth $CI_SNYK_TOKEN
+    - snyk test --fail-on=patchable --json | snyk-to-html -o snyk_sca.html
+  artifacts:
+    when: always
+    paths:
+      - snyk_sca.html
+  only:
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_GRADLE == "TRUE" && $CI_CODE_CHECK_SNYK == "TRUE"'
+
+snyk-code-gradle:
+  stage: check
+  image: gitlab.local.az:4567/devops/images/snyk-gradle:latest
+  script:
+    - gradle build
+    - snyk auth $CI_SNYK_TOKEN
+    - snyk code test --json | snyk-to-html -o snyk_code.html
+  artifacts:
+    when: always
+    paths:
+      - snyk_code.html
+  only:
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_GRADLE == "TRUE" && $CI_CODE_CHECK_SNYK == "TRUE"'
+  
+
+# Test stage for maven and gradle
+
+.test_maven:
+  stage: test
+  image: maven:3.8.5-openjdk-11
+  script:
+    - mvn clean test
+
+.test_gradle:
+  stage: test
+  image: openjdk:11-jdk-slim
+  variables:
+    GRADLE_OPTS: "-Dgradle.user.home=.gradle -Dorg.gradle.daemon=false"
+  before_script:
+    - chmod +x gradlew
+  script:
+    - ./gradlew check
+
+test_maven:
+  extends: .test_maven
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_PROJECT_TEST_STAGE == "TRUE"'
+
+test_gradle:
+  extends: .test_gradle
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_GRADLE == "TRUE" && $CI_PROJECT_TEST_STAGE == "TRUE"'
+
+# Build Maven with jib, Gradle single with jib
+
+.release_jib_maven:
+  stage: release
+  image: maven:3.8.5-openjdk-11
+  variables:
+    MAVEN_CLI_OPTS: "-s .m2/settings.xml --batch-mode"
+    MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  script:
+    - mvn compile jib:build -Djib.to.image=$CI_REGISTRY_IMAGE:$CI_PIPELINE_ID -Djib.to.auth.username=$CI_REGISTRY_USER -Djib.to.auth.password=$CI_REGISTRY_PASSWORD
+
+.release_jib_gradle_mono_repo:
+  stage: release
+  image: openjdk:11-jdk-slim
+  variables:
+    GRADLE_OPTS: "-Dgradle.user.home=.gradle -Dorg.gradle.daemon=false"
+  before_script:
+    - chmod +x gradlew
+  script:
+    - ./gradlew jib -Djib.to.image=$CI_REGISTRY_IMAGE -Djib.to.tags=$CI_PIPELINE_ID -Djib.to.auth.username=$CI_REGISTRY_USER -Djib.to.auth.password=$CI_REGISTRY_PASSWORD
+
+release_gradle:
+  extends: .release_jib_gradle_mono_repo
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_GRADLE == "TRUE" && $CI_RELEASE_TYPE_JIB == "TRUE"'
+
+release_maven:
+  extends: .release_jib_maven
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_RELEASE_TYPE_JIB == "TRUE"'
+
+# Release Front, Maven Kaniko ------------------------------------------------------------------------------------------------------------------------
+
+.release_image_kaniko:
+  stage: release
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(echo -n ${CI_REGISTRY_USER}:${CI_REGISTRY_PASSWORD}| base64)\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor   --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/Dockerfile --insecure --skip-tls-verify  --destination ${CI_REGISTRY}\/${CI_PROJECT_NAMESPACE}\/${CI_PROJECT_NAME}:$CI_PIPELINE_ID
+
+release_kaniko:
+  extends: .release_image_kaniko
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_APPLICATION_TYPE_MAVEN == "TRUE" && $CI_RELEASE_TYPE_KANIKO == "TRUE"'
+
+release_kaniko_frontend:
+  extends: .release_image_kaniko
+  only:
+    refs:
+      - "develop"
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_PROJECT_TYPE_FRONTEND == "TRUE" && $CI_RELEASE_TYPE_KANIKO == "TRUE"'
+
+# Deploy ALL -----------------------------------------------------------------------------------------------------------------------------------------
+
+.deploy:
+  stage: deploy
+  image: dtzar/helm-kubectl
+  environment:
+    name: $CI_COMMIT_BRANCH
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - CI_PROJECT_NAMESPACE=$(echo $CI_PROJECT_NAMESPACE | awk -F '/' '{print $3}')
+    - CI_CD_PROJECT_PATH=development/chart
+    - git -c http.sslVerify=false clone "https://${CI_GITLAB_USERNAME}:${CI_GITLAB_PASSWORD}@gitlab.local.az/${CI_CD_PROJECT_PATH}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}.git" -b ${CI_COMMIT_BRANCH}
+    - cd ${CI_PROJECT_NAME}
+    - git config --global user.email "${GIT_USER_EMAIL:-$GITLAB_USER_EMAIL}"
+    - git config --global user.name "${GIT_USER_NAME:-$GITLAB_USER_NAME}"
+    - sed -i "s/tag:.*/tag:\ ${CI_PIPELINE_ID}/" ${CI_COMMIT_BRANCH}.yaml
+    - git add ${CI_COMMIT_BRANCH}.yaml && git commit -m "Add new tag ${CI_PIPELINE_ID}" && git -c http.sslVerify=false push origin ${CI_COMMIT_BRANCH}
+
+deploy_dev:
+  extends: 
+    - .deploy
+  only:
+    refs:
+      - "develop"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_PROJECT_TYPE_BACKEND == "TRUE"'
+  resource_group: development
+
+deploy_dev_dmz:
+  extends: 
+    - .deploy
+  only:
+    refs:
+      - "develop"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_PROJECT_TYPE_FRONTEND == "TRUE"'
+  resource_group: development
+
+deploy_prod:
+  extends: 
+    - .deploy
+  only:
+    refs:
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_PROJECT_TYPE_BACKEND == "TRUE"'
+  when: manual
+  resource_group: production
+
+deploy_prod_dmz:
+  extends: 
+    - .deploy
+  only:
+    refs:
+      - "master"
+    variables:
+      - '$CI_PROJECT_MODE_MONO_REPO == "TRUE" && $CI_PROJECT_TYPE_FRONTEND == "TRUE"'
+  when: manual
+  resource_group: production

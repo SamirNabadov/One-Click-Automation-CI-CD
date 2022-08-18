@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: __CD_SUBGROUP_NAME__
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "__CD_SUBGROUP_NAME__ project"
+  sourceRepos:
+  - '*'
+  destinations:
+  - namespace: '__CD_HELM_NAMESPACE__'
+    server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+  - group: ''
+    kind: Namespace
+  namespaceResourceWhitelist:
+  - group: "*"
+    kind: "*"
+  roles:
+  - name: "__CD_SUBGROUP_NAME__-application-admin"
+    description: "__CD_SUBGROUP_NAME__ team's deployment role"
+    policies:
+    - p, proj:__CD_SUBGROUP_NAME__:__CD_SUBGROUP_NAME__-application-admin, applications, *, __CD_SUBGROUP_NAME__/*, allow
+    groups:
+    - "__CD_SUBGROUP_NAME__"
+  orphanedResources:
+    warn: true

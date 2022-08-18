@@ -1,0 +1,11 @@
+{{- if .Values.configmaps.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.applicationName }}
+  namespace: {{ .Values.namespace }}
+data:
+    {{- with .Values.configmaps.data }}
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+{{- end }}

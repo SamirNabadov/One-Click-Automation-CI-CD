@@ -1,0 +1,50 @@
+stages:
+  - deploy
+
+variables:
+  CI_PROJECT_GENERATION: "TRUE"
+  CI_PROJECT_MIGRATION: "FALSE"
+  # ----------------------------------------
+  CI_PROJECT_TYPE_FRONTEND: 'FALSE'
+  CI_PROJECT_TYPE_BACKEND: "TRUE"
+  # ----------------------------------------
+  CI_PROJECT_MODE_MONO_REPO: "TRUE"
+  CI_PROJECT_MODE_MULTI_MODULE: "FALSE"
+  # Set microservices modules names only CI_PROJECT_MIGRATION: "TRUE"
+  CI_PROJECT_MULTI_MODULE_NAMES: " "
+  # ----------------------------------------
+  CI_APPLICATION_TYPE_MAVEN: "FALSE"
+  CI_APPLICATION_TYPE_GRADLE: "TRUE"
+  # ----------------------------------------
+  CI_RELEASE_TYPE_JIB: "TRUE"
+  CI_RELEASE_TYPE_KANIKO: "FALSE"
+  # ----------------------------------------
+  CI_CODE_STYLE_SONARQUBE: "FALSE"
+  # ----------------------------------------
+  CI_PROJECT_TEST_STAGE: "TRUE"
+  # ----------------------------------------
+  CI_SUBGROUP_NAME: "demo"
+  CI_PROJECT_NAME: "gradle-single-module-04"
+  # ----------------------------------------
+  CD_GROUP_NAME: "development/code"
+  CD_HELM_NAMESPACE: "demo"
+  CD_HELM_CONTAINER_PORT: "8088"
+  CD_HELM_MANAGEMENT_PORT: "8889"
+  CD_HELM_SERVICE_PORT: "8088"
+  CD_HELM_DOMAIN_NAME_DEV: "dev-demo-app.local.az"
+  CD_HELM_DOMAIN_NAME_PROD: "prod-demo-app.local.lan"
+
+before_script:
+  - pip3 install -r requirement.txt
+  - git config --global user.email "${GIT_USER_EMAIL:-$GITLAB_USER_EMAIL}"
+  - git config --global user.name "${GIT_USER_NAME:-$GITLAB_USER_NAME}"
+
+project-generation:
+  stage: deploy
+  image: gitlab.local.az:4567/devops/images/argocli:latest
+  script:
+    - python3 deploy.py
+  tags:
+    - operation
+
+

@@ -1,0 +1,2 @@
+# gradle-single-module-template
+

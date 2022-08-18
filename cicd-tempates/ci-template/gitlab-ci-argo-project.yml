@@ -1,0 +1,54 @@
+stages:
+  - deploy
+
+variables:
+  CI_PROJECT_TYPE_FRONTEND: "__CI_PROJECT_TYPE_FRONTEND__"
+  CI_PROJECT_TYPE_BACKEND: "__CI_PROJECT_TYPE_BACKEND__"
+
+.deploy:
+  stage: deploy
+  image: dtzar/helm-kubectl
+  before_script:
+    - mkdir -p ~/.kube; echo "$CI_KUBE_CONFIG" > ~/.kube/config
+  script:
+    - kubectl apply -f $CI_PROJECT_NAME/ --recursive
+
+deploy-dev:
+  extends: .deploy
+  variables:
+    CI_KUBE_CONFIG: $CI_K8S_CONFIG_DEV
+  only:
+    variables:
+      - $CI_PROJECT_TYPE_BACKEND == "TRUE"
+  resource_group: development
+
+deploy-dev-dmz:
+  extends: .deploy
+  variables:
+    CI_KUBE_CONFIG: $CI_DMZ_K8S_CONFIG_DEV
+  only:
+    variables:
+      - $CI_PROJECT_TYPE_FRONTEND == "TRUE"
+  resource_group: development
+
+deploy-prod:
+  extends: .deploy
+  variables:
+    CI_KUBE_CONFIG: $PROD_CONFIG
+  only:
+    refs:
+      - "master"
+    variables:
+      - $CI_PROJECT_TYPE_BACKEND == "TRUE"
+  resource_group: production
+
+deploy-prod-dmz:
+  extends: .deploy
+  variables:
+    CI_KUBE_CONFIG: $DMZ_PROD_CONFIG
+  only:
+    refs:
+      - "master"
+    variables:
+      - $CI_PROJECT_TYPE_FRONTEND == "TRUE"
+  resource_group: production

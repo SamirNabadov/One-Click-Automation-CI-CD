@@ -1,0 +1,61 @@
+plugins {
+	id 'org.springframework.boot' version "$springBootVersion"
+	id 'io.spring.dependency-management' version "$springDependencyManagerVersion"
+	id 'java'
+	id 'com.google.cloud.tools.jib' version "$jlibVersion"
+	id "org.sonarqube" version "$sonarlibVersion"
+}
+
+group = 'az.demo'
+version = '0.0.1'
+sourceCompatibility = "$jdk_version" as Object
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+
+//	For web based projects
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+//	Database dependecies
+//	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+//	implementation 'org.liquibase:liquibase-core'
+
+//	Feign client
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+//	Swagger
+//	implementation "io.springfox:springfox-boot-starter:$swaggerVersion"
+
+//	Mandatory dependecies
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:$springCloudVersion"
+	}
+}
+
+jib {
+	allowInsecureRegistries = true
+	container {
+		creationTime = 'USE_CURRENT_TIMESTAMP'
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

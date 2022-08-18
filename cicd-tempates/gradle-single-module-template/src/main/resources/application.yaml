@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: uni-transfer
+
+server:
+  port: __CD_HELM_CONTAINER_PORT__
+
+management:
+  security:
+    enabled: false
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include:
+          - health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      enabled: true
+  server:
+    port: __CD_HELM_MANAGEMENT_PORT__
+

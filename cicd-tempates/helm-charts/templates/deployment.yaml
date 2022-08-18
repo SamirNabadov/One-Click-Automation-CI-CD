@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.applicationName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.applicationName }}
+    chart: {{ .Values.applicationName }}-{{ .Chart.Version }}
+    release: {{ .Values.applicationName }}
+    heritage: {{ .Values.applicationName }}
+spec:
+  {{- if .Values.strategy.enabled }}
+  strategy:
+    type: {{ .Values.strategy.type }}
+    rollingUpdate: #Update Pods a certain number at a time
+      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable }} #Total number of pods that can be unavailable at once
+      maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge }}  #Maximum number of pods that can be deployed above desired state
+  minReadySeconds: {{ .Values.minReadySeconds }} 
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  {{- end }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.applicationName }}
+  template:
+    metadata:
+      annotations:
+        rollme: {{ randAlphaNum 5 | quote }}
+      labels:
+        app.kubernetes.io/name: {{ .Values.applicationName }}
+    spec:
+    {{- with .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.hostsfile.enabled }}
+      hostAliases:
+{{- range .Values.hostsfile.records }}
+      - ip: "{{ .ip }}"
+        hostnames:
+        - "{{ .name }}" 
+{{- end }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.applicationName }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- if .Values.image.tag }}
+          image: {{ .Values.dockerRegistry }}/{{ .Values.image.name }}:{{ .Values.image.tag }}
+          {{ else }}
+          image: {{ .Values.dockerRegistry }}/{{ .Values.image.name }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- end }}
+          {{- if .Values.ports.enabled }}
+          ports:
+          - containerPort: {{ .Values.ports.containerPort }}
+          {{- end }}
+          {{- if .Values.hostpathVolume.enabled }}
+          volumeMounts:
+          - name: {{ .Values.hostpathVolume.name }}
+            mountPath: {{ .Values.hostpathVolume.mountPath }}
+          {{- end }}
+          {{- if .Values.volumeMounts.enabled }}
+          volumeMounts:
+          {{- range .Values.volumeMounts.volumes }}
+          - mountPath: {{ .Values.volumeMounts.volumes.mountPath }}
+            name: {{ .Values.volumeMounts.volumes.name }}
+          {{- end }}
+          {{- end }}
+          env:
+          {{- toYaml $.Values.env | nindent 10 }}
+  {{- if .Values.secrets.enabled }}
+  {{- range .Values.secrets.data }}
+          - name: {{ .name }}
+            valueFrom: 
+              secretKeyRef:
+                name: {{ .valueFrom.name }}
+                key: {{ .valueFrom.key }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.configmaps.enabled }}
+          envFrom:
+          - configMapRef:
+              name: {{ .Values.applicationName }}
+  {{- end }}
+          {{- if .Values.resources.enabled }}
+          resources:      
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.httpGet.path }}
+              port: {{ .Values.readinessProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.httpGet.path }}
+              port: {{ .Values.livenessProbe.httpGet.port }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+      imagePullSecrets:
+      - name: {{ .Values.imagePullSecrets }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- if .Values.volumeMounts.enabled }}
+      volumes:
+      {{- range .Values.volumeMounts.volumes }}
+      - name: {{ .Values.volumeMounts.volumes.name }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.volumeMounts.volumes.claimName }}
+      {{- end }}    
+    {{- end }}
+    {{- if .Values.hostpathVolume.enabled }}
+      volumes:
+        - name: {{ .Values.hostpathVolume.name }}
+          hostPath:
+            path: {{ .Values.hostpathVolume.mountPath }}
+            type: {{ .Values.hostpathVolume.type }}
+    {{- end }}
