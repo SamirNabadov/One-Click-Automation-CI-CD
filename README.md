@@ -1,7 +1,5 @@
-__Automation CI/CD All in One__
+__Automation CI/CD with Python based script (GitOps Approach)__
 ================================
-
-Automation CI/CD with Python based script (GitOps Approach).
 
 ![plot](./images/gitlab_argo.png)
 
