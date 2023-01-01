@@ -19,6 +19,7 @@ What Python based Script Do:
 
 
 These templates include:
+------------
 * CI Templates
 * Helm Charts
 * Argo templates
