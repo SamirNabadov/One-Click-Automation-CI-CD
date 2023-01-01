@@ -85,10 +85,11 @@ The construction of CI/CD on this structure is automated using a python-based sc
 
 Running the Script from pipeline
 ------------
+* Fill in the necessary parameters in the variable section and run the pipeline.
+
+
 ![plot](./images/run_pipeline.png)
 
-
-* Fill in the necessary parameters in the variable section and run the pipeline.
 
 __Note__
 ------------
