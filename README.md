@@ -16,6 +16,7 @@ What Python based Script Do:
 * Provides user access to newly created and templated projects based on given environment variables (MAINTAINER,DEVELOPER,REPORTER).
 * Applying of container registry policies (rotation for deleting old images)
 
+
 These templates include:
 * CI Templates
 * Helm Charts
