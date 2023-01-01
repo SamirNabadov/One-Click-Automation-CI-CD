@@ -2,8 +2,9 @@ stages:
   - deploy
 
 variables:
-  CI_PROJECT_TYPE_FRONTEND: "__CI_PROJECT_TYPE_FRONTEND__"
-  CI_PROJECT_TYPE_BACKEND: "__CI_PROJECT_TYPE_BACKEND__"
+  CI_PROJECT_TYPE_FRONTEND    : "__CI_PROJECT_TYPE_FRONTEND__"
+  CI_PROJECT_TYPE_BACKEND     : "__CI_PROJECT_TYPE_BACKEND__"
+  CI_PROJECT_TYPE_BACKEND_DMZ : "__CI_PROJECT_TYPE_BACKEND_DMZ__"
 
 .deploy:
   stage: deploy
@@ -21,7 +22,7 @@ deploy-dev:
     refs:
       - "develop"
     variables:
-      - $CI_PROJECT_TYPE_BACKEND == "TRUE"
+      - '$CI_PROJECT_TYPE_BACKEND == "TRUE" && $CI_PROJECT_TYPE_BACKEND_DMZ == "FALSE"'
   resource_group: development
 
 deploy-dev-dmz:
@@ -38,21 +39,43 @@ deploy-dev-dmz:
 deploy-prod:
   extends: .deploy
   variables:
-    CI_KUBE_CONFIG: $PROD_CONFIG
+    CI_KUBE_CONFIG: $CI_K8S_CONFIG_PROD
   only:
     refs:
       - "master"
     variables:
-      - $CI_PROJECT_TYPE_BACKEND == "TRUE"
+      - '$CI_PROJECT_TYPE_BACKEND == "TRUE" && $CI_PROJECT_TYPE_BACKEND_DMZ == "FALSE"'
   resource_group: production
 
 deploy-prod-dmz:
   extends: .deploy
   variables:
-    CI_KUBE_CONFIG: $DMZ_PROD_CONFIG
+    CI_KUBE_CONFIG: $CI_DMZ_K8S_CONFIG_PROD
   only:
     refs:
       - "master"
     variables:
       - $CI_PROJECT_TYPE_FRONTEND == "TRUE"
+  resource_group: production
+
+deploy-dev-dmz-for-backend:
+  extends: .deploy
+  variables:
+    CI_KUBE_CONFIG: $CI_DMZ_K8S_CONFIG_DEV
+  only:
+    refs:
+      - "develop"
+    variables:
+      - '$CI_PROJECT_TYPE_BACKEND == "TRUE" && $CI_PROJECT_TYPE_BACKEND_DMZ == "TRUE"'
+  resource_group: development
+
+deploy-prod-dmz-for-backend:
+  extends: .deploy
+  variables:
+    CI_KUBE_CONFIG: $CI_DMZ_K8S_CONFIG_PROD
+  only:
+    refs:
+      - "master"
+    variables:
+      - '$CI_PROJECT_TYPE_BACKEND == "TRUE" && $CI_PROJECT_TYPE_BACKEND_DMZ == "TRUE"'
   resource_group: production

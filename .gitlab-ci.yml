@@ -2,49 +2,113 @@ stages:
   - deploy
 
 variables:
-  CI_PROJECT_GENERATION: "TRUE"
-  CI_PROJECT_MIGRATION: "FALSE"
-  # ----------------------------------------
-  CI_PROJECT_TYPE_FRONTEND: 'FALSE'
-  CI_PROJECT_TYPE_BACKEND: "TRUE"
-  # ----------------------------------------
-  CI_PROJECT_MODE_MONO_REPO: "TRUE"
-  CI_PROJECT_MODE_MULTI_MODULE: "FALSE"
-  # Set microservices modules names only CI_PROJECT_MIGRATION: "TRUE"
-  CI_PROJECT_MULTI_MODULE_NAMES: " "
-  # ----------------------------------------
-  CI_APPLICATION_TYPE_MAVEN: "FALSE"
-  CI_APPLICATION_TYPE_GRADLE: "TRUE"
-  # ----------------------------------------
-  CI_RELEASE_TYPE_JIB: "TRUE"
-  CI_RELEASE_TYPE_KANIKO: "FALSE"
-  # ----------------------------------------
-  CI_CODE_STYLE_SONARQUBE: "FALSE"
-  # ----------------------------------------
-  CI_PROJECT_TEST_STAGE: "TRUE"
-  # ----------------------------------------
-  CI_SUBGROUP_NAME: "demo"
-  CI_PROJECT_NAME: "gradle-single-module-04"
-  # ----------------------------------------
-  CD_GROUP_NAME: "development/code"
-  CD_HELM_NAMESPACE: "demo"
-  CD_HELM_CONTAINER_PORT: "8088"
-  CD_HELM_MANAGEMENT_PORT: "8889"
-  CD_HELM_SERVICE_PORT: "8088"
-  CD_HELM_DOMAIN_NAME_DEV: "dev-demo-app.local.az"
-  CD_HELM_DOMAIN_NAME_PROD: "prod-demo-app.local.lan"
+  CI_PROJECT_GENERATION:
+    value: "TRUE"
+    description: "GENERATION NEW REPOSITORY FOR NEW PROJECTS"
+  CI_PROJECT_MIGRATION:
+    value: "FALSE"
+    description: "GENERATION NEW REPOSITORY FOR OLD PROJECTS"
+  CI_PROJECT_TYPE_BACKEND: 
+    value: "TRUE"
+    description: "SET PROJECT TYPE BACKEND FOR NON-DMZ ZONE"
+  CI_PROJECT_TYPE_FRONTEND:
+    value: "FALSE"
+    description: "SET PROJECT TYPE FRONTEND FOR DMZ ZONE"
 
-before_script:
+  # For public backend projects must be: 
+  #   CI_PROJECT_TYPE_BACKEND_DMZ: "TRUE"
+  CI_PROJECT_TYPE_BACKEND_DMZ:
+    value: "FALSE"
+    description: "SET PROJECT TYPE BACKEND FOR DMZ ZONE"
+  CI_PROJECT_MODE_MONO_REPO:
+    value: "TRUE"
+    description: "CREATE MONO REPO"
+  CI_PROJECT_MODE_MULTI_MODULE:
+    value: "FALSE"
+    description: "CREATE MULTI MODULE REPO"
+  CI_MODULE_NAME_FOR_MULTI_MDOULE:
+    value: "NULL"
+    description: "SET MODULE NAME FOR MULTI MODULE REPO"
+  CI_APPLICATION_TYPE_MAVEN:
+    value: "FALSE"
+    description: "SETTING APPLICATION TYPE MAWEN"
+  CI_APPLICATION_TYPE_GRADLE:
+    value: "TRUE"
+    description: "SET APPLICATION TYPE GRADLE"
+  CI_APPLICATION_TYPE_PYTHON:
+    value: "FALSE"
+    description: "SET APPLICATION TYPE PYTHON"
+  CI_RELEASE_TYPE_JIB:
+    value: "TRUE"
+    description: "SET RELAESE TYPE JIB" 
+  CI_RELEASE_TYPE_KANIKO: 
+    value: "FALSE"
+    description: "SET RELAESE TYPE KANIKO"  
+  CI_CODE_STYLE_SONARQUBE: 
+    value: "FALSE"
+    description: "ADD SONAR STAGE"
+  CI_CODE_CHECK_SNYK:
+    value: "FALSE"
+    description: "ADD SNYK STAGE"
+  CI_PROJECT_TEST_STAGE:
+    value: "FALSE"
+    description: "ADD TEST STAGE"
+  CI_BACKEND_IMAGE_VERSION_GRADLE: 
+    value: "openjdk:11-jdk-slim"
+    description: "SET IMAGE VERSION FOR GRADLE"
+  CI_BACKEND_IMAGE_VERSION_MAWEN:
+    value: "maven:3.8.5-openjdk-11"
+    description: "SET IMAGE VERSION FOR MAWEN"
+  CI_SUBGROUP_NAME:
+    value: "NULL"
+    description: "ENTER GROUP NAME"
+  CI_PROJECT_NAME:
+    value: "NULL"
+    description: "ENTER PROJECT NAME"
+  CD_HELM_NAMESPACE:
+    value: "NULL"
+    description: "ENTER NAMESPACE NAME"
+  CD_HELM_CONTAINER_PORT:
+    value: "8088"
+    description: "ENTER CONTAINER PORT"  
+  CD_HELM_MANAGEMENT_PORT:
+    value: "8081"
+    description: "ENTER MANAGEMENT PORT"  
+  CD_HELM_SERVICE_PORT:
+    value: "8088"
+    description: "ENTER SERVICE PORT" 
+
+  # DNS Records for each environments: 
+  #"  *.*.k8s-devdmz.local.lan" 
+  #"  *.*.k8s-dev.local.lan" 
+  #"  *.*.k8s-proddmz.local.lan" 
+  #"  *.*.k8s-prod.local.lan"
+  CD_CLUSTER_TYPE_DEV:
+    value: "dev"
+    description: "ADD CLUSTER-TYPE FOR DEV/DEVDMZ"
+  CD_CLUSTER_TYPE_PROD:
+    value: "prod"
+    description: "ADD CLUSTER-TYPE FOR PROD/PRODDMZ"
+  CD_HELM_DOMAIN_NAME_DEV: "${CI_PROJECT_NAME}.${CI_SUBGROUP_NAME}.k8s-${CD_CLUSTER_TYPE_DEV}.local.lan"
+  CD_HELM_DOMAIN_NAME_PROD: "${CI_PROJECT_NAME}.${CI_SUBGROUP_NAME}.k8s-${CD_CLUSTER_TYPE_PROD}.local.lan"
+
+  # Setting access to users for created repositories
+  # There must be a space between usernames
+  CI_ACCESS_MAINTAINER:
+    value: "NULL"
+    description: "ENTER MAINTAINER USERS"
+  CI_ACCESS_DEVELOPER:
+    value: "NULL"
+    description: "ENTER DEVELOPER USERS"
+
+deploy:
+  stage: deploy
+  image: gitlab.local.lan:4567/devops/images/argocli:latest
+  before_script:
   - pip3 install -r requirement.txt
   - git config --global user.email "${GIT_USER_EMAIL:-$GITLAB_USER_EMAIL}"
   - git config --global user.name "${GIT_USER_NAME:-$GITLAB_USER_NAME}"
-
-project-generation:
-  stage: deploy
-  image: gitlab.local.az:4567/devops/images/argocli:latest
   script:
-    - python3 deploy.py
+    - python3 ./main.py
   tags:
     - operation
-
-

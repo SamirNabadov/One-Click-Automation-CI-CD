@@ -3,7 +3,7 @@ __Automation CI/CD with Python based script (GitOps Approach)__
 
 ![plot](./images/gitlab_argo.png)
 
-Here I tried to automate processes from Gitlab project creation to deployment to the environment. This repo contains Python based script and pre-made templates for CI/CD.
+Here I tried to automate processes from Gitlab project creation to deployment to the environment. This repo contains Python based script with there custom modules and pre-made templates for CI/CD.
 
 These templates include:
 * CI Templates
@@ -22,7 +22,8 @@ Gitlab CI
     - check (with Snyk)
     - test (Testing code)
     - release (Building images)
-    - deploy (Push to helm)
+    - push-to-helm (Push to helm)
+    - argocd-sync (Sync Argo)
 * Included Python script for generation dynamic pipeline for multi-module projects (https://github.com/SamirNabadov/Dynamic-Pipeline-Generation).
 * Used jib and kaniko to build and push images to gitlab registry.
 
@@ -68,9 +69,12 @@ The construction of CI/CD on this structure is automated using a python-based sc
 ![plot](./images/argocd_application.png)
 
 
-Running the Script
+Running the Script from pipeline
 ------------
-* Fill in the necessary parameters in the variable section in the .gitlab-ci.yml file and run the pipeline.
+![plot](./images/run_pipeline.png)
+
+
+* Fill in the necessary parameters in the variable section and run the pipeline.
 
 __Note__
 ------------
