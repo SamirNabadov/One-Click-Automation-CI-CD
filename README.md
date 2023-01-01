@@ -12,9 +12,10 @@ What Python based Script Do:
 * Checks for projects under subgroups and creates them if they don't exist.
 * Creates multi module or mono repo projects based on given environment variables.
 * Clone the template and newly created repos, then modify the necessary changes in the .gitlab-ci.yml, helm charts, templates and add to existing projects, then push to Gitlab.
+* The build pipeline for each project will provide the necessary jobs from the central repo based on the environment variables in the .gitlab-ci-yml file.
 * Repositories with helm charts are joined to ArgoCD before projects and applications are created through the pipeline in ArgoCD.
 * Provides user access to newly created and templated projects based on given environment variables (MAINTAINER,DEVELOPER,REPORTER).
-* Applying of container registry policies (rotation for deleting old images)
+* Applying of container registry policies (rotation for deleting old images).
 
 
 These templates include:
