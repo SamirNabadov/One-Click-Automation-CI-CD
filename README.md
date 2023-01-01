@@ -5,7 +5,9 @@ __Automation CI/CD with Python based script (GitOps Approach)__
 
 Here, I tried to automate the processes from creating a Gitlab project to deploying it to the environment, ensuring that nothing was done manually. This repo contains Python based script with there custom modules and pre-made templates for CI/CD.
 
-What Python based Script Do: 
+
+What Python based Script Do:
+------------
 * Checks for subgroups under the main group, and create them if they doesn't exist.
 * Checks for projects under subgroups and creates them if they don't exist.
 * Creates multi module or mono repo projects based on given environment variables.
