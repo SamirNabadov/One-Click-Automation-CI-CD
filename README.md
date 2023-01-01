@@ -3,7 +3,16 @@ __Automation CI/CD with Python based script (GitOps Approach)__
 
 ![plot](./images/gitlab_argo.png)
 
-Here I tried to automate processes from Gitlab project creation to deployment to the environment. This repo contains Python based script with there custom modules and pre-made templates for CI/CD.
+Here, I tried to automate the processes from creating a Gitlab project to deploying it to the environment, ensuring that nothing was done manually. This repo contains Python based script with there custom modules and pre-made templates for CI/CD.
+
+What Python based Script Do: 
+* Checks for subgroups under the main group, and create them if they doesn't exist.
+* Checks for projects under subgroups and creates them if they don't exist.
+* Creates multi module or mono repo projects based on given environment variables.
+* Clone the template and newly created repos, then modify the necessary changes in the .gitlab-ci.yml, helm charts, templates and add to existing projects, then push to Gitlab.
+* Repositories with helm charts are joined to ArgoCD before projects and applications are created through the pipeline in ArgoCD.
+* Provides user access to newly created and templated projects based on given environment variables (MAINTAINER,DEVELOPER,REPORTER).
+* Applying of container registry policies (rotation for deleting old images)
 
 These templates include:
 * CI Templates
@@ -25,7 +34,7 @@ Gitlab CI
     - push-to-helm (Push to helm)
     - argocd-sync (Sync Argo)
 * Included Python script for generation dynamic pipeline for multi-module projects (https://github.com/SamirNabadov/Dynamic-Pipeline-Generation).
-* Used jib and kaniko to build and push images to gitlab registry.
+* Used Jib and Kaniko to build and push images to gitlab registry.
 
 Helm Charts
 ------------
