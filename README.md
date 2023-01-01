@@ -1,7 +1,7 @@
 __Automation CI/CD with Python based script (GitOps Approach)__
 ================================
 
-![plot](./images/gitlab_argo.png)
+![plot](./images/cicd.png)
 
 Here, I tried to automate the processes from creating a Gitlab project to deploying it to the environment, ensuring that nothing was done manually. This repo contains Python based script with there custom modules and pre-made templates for CI/CD.
 
